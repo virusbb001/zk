@@ -137,12 +137,16 @@ func (d *document) GetLines() []string {
 // LookBehind returns the n characters before the given position, on the same line.
 func (d *document) LookBehind(pos protocol.Position, length int) string {
 	line, ok := d.GetLine(int(pos.Line))
-	utf16Bytes := utf16.Encode([]rune(line))
 	if !ok {
 		return ""
 	}
+	utf16Bytes := utf16.Encode([]rune(line))
 
 	charIdx := int(pos.Character)
+	if charIdx > len(utf16Bytes) {
+		charIdx = len(utf16Bytes)
+	}
+
 	if length > charIdx {
 		return string(utf16.Decode(utf16Bytes[0:charIdx]))
 	}
@@ -314,7 +318,13 @@ func (d *document) IsTagPosition(position protocol.Position, noteContentParser c
 	lines := strutil.CopyList(d.GetLines())
 	lineIdx := int(position.Line)
 	charIdx := int(position.Character)
+	if len(lines) <= lineIdx {
+		return false
+	}
 	line := lines[lineIdx]
+	if len(line) <= charIdx {
+		return false
+	}
 	// https://github.com/zk-org/zk/issues/144#issuecomment-1006108485
 	line = line[:charIdx] + "ZK_PLACEHOLDER" + line[charIdx:]
 	lines[lineIdx] = line
